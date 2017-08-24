@@ -29,6 +29,9 @@ for mainly get graphs and links.
 """
 
 import socket
+import hashlib
+
+from base64 import urlsafe_b64encode
 
 from shinken.log import logger
 from shinken.basemodule import BaseModule
@@ -52,6 +55,10 @@ class PNP_Webui(BaseModule):
         self.uri = getattr(modconf, 'uri', None)
         self.username = getattr(modconf, 'username', None)
         self.password = getattr(modconf, 'password', '')
+        self.secure_uri = getattr(modconf, 'secure_uri', False)
+        self.secure_param = getattr(modconf, 'secure_param', 'hash')
+        self.hash_method = getattr(modconf, 'hash_method', 'md5')
+        self.salt = getattr(modconf, 'salt', '')
 
         if not self.uri:
             raise Exception('The WebUI PNP module is missing uri parameter.')
@@ -85,6 +92,12 @@ class PNP_Webui(BaseModule):
     def get_external_ui_link(self):
         return {'label': 'PNP4', 'uri': self.uri}
 
+    def get_secure_hash(self, url):
+        m = hashlib.new(self.hash_method)
+        m.update(url)
+	m.update(self.salt)
+        return '&%s=%s' % (self.secure_param, urlsafe_b64encode(m.digest()))
+
     # Ask for an host or a service the graph UI that the UI should
     # give to get the graph image link and PNP page link too.
     # for now, the source variable does nothing. Values passed to this variable can be : 
@@ -104,6 +117,9 @@ class PNP_Webui(BaseModule):
                 v = {}
                 v['link'] = self.uri + 'index.php/graph?host=%s&srv=_HOST_' % elt.get_name()
                 v['img_src'] = self.uri + 'index.php/image?host=%s&srv=_HOST_&view=0&source=%d&start=%d&end=%d' % (elt.get_name(), i, graphstart, graphend)
+                if self.secure_uri:
+                    v['link'] += self.get_secure_hash(v['link'])
+                    v['img_src'] += self.get_secure_hash(v['img_src'])
                 r.append(v)
             return r
         if t == 'service':
@@ -112,6 +128,9 @@ class PNP_Webui(BaseModule):
                 v = {}
                 v['link'] = self.uri + 'index.php/graph?host=%s&srv=%s' % (elt.host.host_name, elt.service_description)
                 v['img_src'] = self.uri + 'index.php/image?host=%s&srv=%s&view=0&source=%d&start=%d&end=%d' % (elt.host.host_name, elt.service_description, i, graphstart, graphend)
+                if self.secure_uri:
+                    v['link'] += self.get_secure_hash(v['link'])
+                    v['img_src'] += self.get_secure_hash(v['img_src'])
                 r.append(v)
             return r
 
