@@ -32,6 +32,7 @@ import socket
 import hashlib
 
 from base64 import urlsafe_b64encode
+from urlparse import urlparse
 
 from shinken.log import logger
 from shinken.basemodule import BaseModule
@@ -94,8 +95,8 @@ class PNP_Webui(BaseModule):
 
     def get_secure_hash(self, url):
         m = hashlib.new(self.hash_method)
-        m.update(url)
-	m.update(self.salt)
+        p = urlparse(url)
+        m.update(self.salt + p.path + '?' + p.query)
         return '&%s=%s' % (self.secure_param, urlsafe_b64encode(m.digest()))
 
     # Ask for an host or a service the graph UI that the UI should
