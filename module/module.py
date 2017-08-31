@@ -32,7 +32,6 @@ import socket
 import hashlib
 
 from base64 import urlsafe_b64encode
-from urlparse import urlparse
 
 from shinken.log import logger
 from shinken.basemodule import BaseModule
@@ -93,10 +92,11 @@ class PNP_Webui(BaseModule):
     def get_external_ui_link(self):
         return {'label': 'PNP4', 'uri': self.uri}
 
-    def get_secure_hash(self, url):
+    def get_secure_hash(self, *args):
         m = hashlib.new(self.hash_method)
-        p = urlparse(url)
-        m.update(self.salt + p.path + '?' + p.query)
+        m.update(self.salt)
+        for a in args:
+            m.update(a)
         return '&%s=%s' % (self.secure_param, urlsafe_b64encode(m.digest()))
 
     # Ask for an host or a service the graph UI that the UI should
@@ -119,8 +119,9 @@ class PNP_Webui(BaseModule):
                 v['link'] = self.uri + 'index.php/graph?host=%s&srv=_HOST_' % elt.get_name()
                 v['img_src'] = self.uri + 'index.php/image?host=%s&srv=_HOST_&view=0&source=%d&start=%d&end=%d' % (elt.get_name(), i, graphstart, graphend)
                 if self.secure_uri:
-                    v['link'] += self.get_secure_hash(v['link'])
-                    v['img_src'] += self.get_secure_hash(v['img_src'])
+                    args = ('_HOST_', elt.get_name())
+                    v['link'] += self.get_secure_hash(*args)
+                    v['img_src'] += self.get_secure_hash(*args)
                 r.append(v)
             return r
         if t == 'service':
@@ -130,8 +131,9 @@ class PNP_Webui(BaseModule):
                 v['link'] = self.uri + 'index.php/graph?host=%s&srv=%s' % (elt.host.host_name, elt.service_description)
                 v['img_src'] = self.uri + 'index.php/image?host=%s&srv=%s&view=0&source=%d&start=%d&end=%d' % (elt.host.host_name, elt.service_description, i, graphstart, graphend)
                 if self.secure_uri:
-                    v['link'] += self.get_secure_hash(v['link'])
-                    v['img_src'] += self.get_secure_hash(v['img_src'])
+                    args = (elt.host.host_name, elt.service_description)
+                    v['link'] += self.get_secure_hash(*args)
+                    v['img_src'] += self.get_secure_hash(*args)
                 r.append(v)
             return r
 
