@@ -119,7 +119,7 @@ class PNP_Webui(BaseModule):
                 v['link'] = self.uri + 'index.php/graph?host=%s&srv=_HOST_' % elt.get_name()
                 v['img_src'] = self.uri + 'index.php/image?host=%s&srv=_HOST_&view=0&source=%d&start=%d&end=%d' % (elt.get_name(), i, graphstart, graphend)
                 if self.secure_uri:
-                    args = ('_HOST_', elt.get_name())
+                    args = (elt.get_name(), '_HOST_')
                     v['link'] += self.get_secure_hash(*args)
                     v['img_src'] += self.get_secure_hash(*args)
                 r.append(v)
